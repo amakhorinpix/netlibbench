@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="K4os.Compression.LZ4" Version="1.2.5" />
+    <PackageReference Include="LiteNetLib" Version="0.9.3.2" />
+    <PackageReference Include="protobuf-net" Version="3.0.29" />
+    <PackageReference Include="Snappy.Standard" Version="0.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\pixocets\Pixockets\Pixockets.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,11 @@
+packages/
+ServerBench/obj/
+ServerBench/bin/Debug/System.Memory.xml
+ServerBench/bin/
+Framework/obj/
+Framework/bin/
+CompressionBench/bin/
+CompressionBench/obj/
+ClientBench/bin/
+ClientBench/obj/
+.vs/
