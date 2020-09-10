@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using NetLibsBench;
 
 namespace CompressionBench
@@ -12,7 +13,10 @@ namespace CompressionBench
             var snappy = new SnappyCompressor();
             for (var i = 0; i < 100; i++)
             {
-                var model = BaseClient.GenerateState();
+                var model = new WorldState2()
+                {
+                    Players = Enumerable.Range(0,1000).Select(_ => 1).ToArray()
+                };
                 byte[] serialized;
                 using (var m = new MemoryStream())
                 {

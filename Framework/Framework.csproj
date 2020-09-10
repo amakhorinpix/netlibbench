@@ -9,6 +9,7 @@
     <PackageReference Include="LiteNetLib" Version="0.9.3.2" />
     <PackageReference Include="protobuf-net" Version="3.0.29" />
     <PackageReference Include="Snappy.Standard" Version="0.2.0" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.7.0" />
   </ItemGroup>
 
   <ItemGroup>

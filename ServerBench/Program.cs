@@ -7,10 +7,10 @@ namespace ServerBench
     {
         static void Main(string[] args)
         {
-            var isPix = false;//args[0] == "-p";
+            var isPix = args[0] == "-p";
 
             ICompressor compressor;
-            switch ("n")//args[1])
+            switch (args[1])
             {
                 case "-l":
                     compressor = new LZ4Compressor();

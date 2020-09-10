@@ -26,7 +26,7 @@ namespace NetLibsBench
             }
         }
 
-        public PixClient(ICompressor compressor, ByteBufferPool buffer) : base(compressor)
+        public PixClient(ICompressor compressor) : base(compressor)
         {
             _bufferPool = new ByteBufferPool();
         }
@@ -58,7 +58,7 @@ namespace NetLibsBench
                 try
                 {
                     ApplyState(packet.Buffer, packet.Offset, packet.Length);
-                    //_bufferPool.Put(packet.Buffer);
+                    _bufferPool.Put(packet.Buffer);
                 }
                 catch (Exception e)
                 {

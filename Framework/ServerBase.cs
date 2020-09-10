@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace NetLibsBench
 {
@@ -16,8 +15,8 @@ namespace NetLibsBench
             public int Index;
         };
 
-        private readonly ConcurrentDictionary<string, PlayerIndex>
-            _clients = new ConcurrentDictionary<string, PlayerIndex>();
+        private readonly Dictionary<string, PlayerIndex>
+            _clients = new Dictionary<string, PlayerIndex>();
 
         private readonly List<List<IPEndPoint>> _endpoints = new List<List<IPEndPoint>>();
         private readonly List<List<FullMechState>> _rooms = new List<List<FullMechState>>();
@@ -25,12 +24,23 @@ namespace NetLibsBench
         private readonly ICompressor _compressor;
         private readonly MemoryStream _memoryStream = new MemoryStream();
         private const int RoomSize = 12;
+        private PerformanceCounter _requestsCounter;
+
 
         protected ServerBase(ICompressor compressor)
         {
             _compressor = compressor;
-        }
+            if (!PerformanceCounterCategory.Exists("benchmarking"))
+            {
+                var data = new CounterCreationData("Requests Count Per Sec", "", PerformanceCounterType.RateOfCountsPerSecond32);
+                var collection = new CounterCreationDataCollection();
+                collection.Add(data);
+                PerformanceCounterCategory.Create("benchmarking", string.Empty,
+                    PerformanceCounterCategoryType.SingleInstance, collection);
+            }
 
+            _requestsCounter = new PerformanceCounter("benchmarking", "Requests Count Per Sec", false);
+        }
 
         protected void OnReceive(byte[] buffer, int offset, int dataLength, IPEndPoint ip)
         {
@@ -38,7 +48,7 @@ namespace NetLibsBench
             {
                 var decompressed = _compressor.UnCompress(buffer, offset, dataLength, out var length);
                 var deserialize =
-                    (FullMechState)ProtoBuf.Serializer.NonGeneric.Deserialize(typeof(FullMechState),
+                    (FullMechState) ProtoBuf.Serializer.NonGeneric.Deserialize(typeof(FullMechState),
                         new ReadOnlyMemory<byte>(decompressed, 0, length));
 
                 if (_clients.TryGetValue(deserialize.Id, out var index))
@@ -47,40 +57,39 @@ namespace NetLibsBench
                 }
                 else
                 {
-                    lock (_rooms)
+                    List<FullMechState> mechState;
+                    List<IPEndPoint> endpoints;
+                    var roomNr = _rooms.Count - 1;
+                    if (roomNr < 0 || _rooms[roomNr].Count == RoomSize)
                     {
-                        List<FullMechState> mechState;
-                        List<IPEndPoint> endpoints;
-                        var roomNr = _rooms.Count - 1;
-                        if (roomNr < 0 || _rooms[roomNr].Count == RoomSize)
-                        {
-                            mechState = new List<FullMechState>();
-                            endpoints = new List<IPEndPoint>();
-                            _rooms.Add(mechState);
-                            _endpoints.Add(endpoints);
-                            roomNr += 1;
-                        }
-                        else
-                        {
-                            mechState = _rooms[roomNr];
-                            endpoints = _endpoints[roomNr];
-                        }
-                        mechState.Add(deserialize);
-                        if (mechState.Count == RoomSize) Task.Run(() => RoomThread(roomNr));
-                        endpoints.Add(ip);
-                        _clients.TryAdd(deserialize.Id, new PlayerIndex
-                        {
-                            RoomNr = roomNr,
-                            Index = mechState.Count - 1
-                        });
+                        mechState = new List<FullMechState>();
+                        endpoints = new List<IPEndPoint>();
+                        _rooms.Add(mechState);
+                        _endpoints.Add(endpoints);
+                        roomNr += 1;
                     }
+                    else
+                    {
+                        mechState = _rooms[roomNr];
+                        endpoints = _endpoints[roomNr];
+                    }
+
+                    mechState.Add(deserialize);
+                    if (mechState.Count == RoomSize) Console.WriteLine($"{DateTime.Now} Room {roomNr + 1} started");
+                    endpoints.Add(ip);
+                    _clients.Add(deserialize.Id, new PlayerIndex
+                    {
+                        RoomNr = roomNr,
+                        Index = mechState.Count - 1
+                    });
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
-            
+
+            _requestsCounter.Increment();
         }
 
 
@@ -91,36 +100,24 @@ namespace NetLibsBench
             {
                 Thread.Sleep(100);
                 Read();
+                SendUpdates();
             }
         }
 
-        private void RoomThread(int roomIndex)
+        private void SendUpdates()
         {
-            Console.WriteLine($"Room {roomIndex + 1} started");
-            while (!Console.KeyAvailable)
+            for (var i = 0; i < _rooms.Count; i++)
             {
-                try
+                if (_rooms[i].Count < RoomSize) continue;
+                var roomState = new WorldState
                 {
-                    Thread.Sleep(100);
-                    var roomState = new WorldState
-                    {
-                        Players = _rooms[roomIndex].ToArray()
-                    };
+                    Players = _rooms[i]
+                };
 
-                    lock (_memoryStream)
-                    {
-                        ProtoBuf.Serializer.NonGeneric.Serialize(_memoryStream, roomState);
-                        Send(_compressor.Compress(_memoryStream.ToArray()), _endpoints[roomIndex]);
-                        _memoryStream.Position = 0;
-                        _memoryStream.SetLength(0);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                    throw;
-                }
-                
+                ProtoBuf.Serializer.NonGeneric.Serialize(_memoryStream, roomState);
+                Send(_compressor.Compress(_memoryStream.ToArray()), _endpoints[i]);
+                _memoryStream.Position = 0;
+                _memoryStream.SetLength(0);
             }
         }
 

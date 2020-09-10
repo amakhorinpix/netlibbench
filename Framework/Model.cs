@@ -5,6 +5,12 @@ using ProtoBuf;
 namespace NetLibsBench
 {
     [ProtoContract]
+    public class WorldState2
+    {
+        [ProtoMember(1)] public IList<int> Players;
+    }
+
+    [ProtoContract]
     public class WorldState
     {
         [ProtoMember(1)] public IList<FullMechState> Players;

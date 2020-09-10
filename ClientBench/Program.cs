@@ -3,7 +3,6 @@
 using System.Threading.Tasks;
 using Framework;
 using NetLibsBench;
-using Pixockets.Pools;
 
 namespace ClientBench
 {
@@ -11,11 +10,11 @@ namespace ClientBench
     {
         static void Main(string[] args)
         {
-            var isPix = false;//args[0] == "-p";
+            var isPix = args[0] == "-p";
             var rooms = args.Length == 3 ? int.Parse(args[2]) : 10;
 
             ICompressor compressor;
-            switch ("n")//args[1])
+            switch (args[1])
             {
                 case "-l":
                     compressor = new LZ4Compressor();
@@ -28,10 +27,9 @@ namespace ClientBench
                     break;
             }
 
-            var byteBuffer = new ByteBufferPool();
             for (var i = 0; i < rooms * 12; i++)
             {
-                if (isPix) Task.Run((Action)new PixClient(compressor, byteBuffer).Start);
+                if (isPix) Task.Run((Action)new PixClient(compressor).Start);
                 else Task.Run((Action)new LiteClient(compressor).Start);
             }
 
