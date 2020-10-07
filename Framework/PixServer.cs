@@ -36,7 +36,7 @@ namespace NetLibsBench
         {
             _bufferPool = new ByteBufferPool();
             _servSock = new SmartSock(_bufferPool,
-                new BareSock(_bufferPool, AddressFamily.InterNetwork, new LoggerStub()), _soc);
+                new ThreadSock(_bufferPool, AddressFamily.InterNetwork, new LoggerStub()), _soc);
             _servSock.Listen(2345);
         }
 

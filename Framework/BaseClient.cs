@@ -12,7 +12,7 @@ namespace NetLibsBench
         private static readonly Random _rnd = new Random();
         private readonly ICompressor _compressor;
         private readonly MemoryStream _memoryStream = new MemoryStream();
-
+        
         protected BaseClient(ICompressor compressor)
         {
             _compressor = compressor;
@@ -70,7 +70,7 @@ namespace NetLibsBench
         {
             var decompressed = _compressor.UnCompress(compressed, offset, size, out var length);
             var deserialize =
-                (WorldState) ProtoBuf.Serializer.NonGeneric.Deserialize(typeof(WorldState),
+                (WorldState)ProtoBuf.Serializer.NonGeneric.Deserialize(typeof(WorldState),
                     new ReadOnlyMemory<byte>(decompressed, 0, length));
             foreach (var player in deserialize.Players)
             {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 
@@ -15,8 +16,8 @@ namespace NetLibsBench
             public int Index;
         };
 
-        private readonly Dictionary<string, PlayerIndex>
-            _clients = new Dictionary<string, PlayerIndex>();
+        private readonly Dictionary<IPEndPoint, PlayerIndex>
+            _clients = new Dictionary<IPEndPoint, PlayerIndex>();
 
         private readonly List<List<IPEndPoint>> _endpoints = new List<List<IPEndPoint>>();
         private readonly List<List<FullMechState>> _rooms = new List<List<FullMechState>>();
@@ -48,10 +49,10 @@ namespace NetLibsBench
             {
                 var decompressed = _compressor.UnCompress(buffer, offset, dataLength, out var length);
                 var deserialize =
-                    (FullMechState) ProtoBuf.Serializer.NonGeneric.Deserialize(typeof(FullMechState),
+                    (FullMechState)ProtoBuf.Serializer.NonGeneric.Deserialize(typeof(FullMechState),
                         new ReadOnlyMemory<byte>(decompressed, 0, length));
 
-                if (_clients.TryGetValue(deserialize.Id, out var index))
+                if (_clients.TryGetValue(ip, out var index))
                 {
                     _rooms[index.RoomNr][index.Index] = deserialize;
                 }
@@ -77,7 +78,7 @@ namespace NetLibsBench
                     mechState.Add(deserialize);
                     if (mechState.Count == RoomSize) Console.WriteLine($"{DateTime.Now} Room {roomNr + 1} started");
                     endpoints.Add(ip);
-                    _clients.Add(deserialize.Id, new PlayerIndex
+                    _clients.Add(ip, new PlayerIndex
                     {
                         RoomNr = roomNr,
                         Index = mechState.Count - 1
@@ -98,7 +99,7 @@ namespace NetLibsBench
             Init();
             while (!Console.KeyAvailable)
             {
-                Thread.Sleep(100);
+                Thread.Sleep(50);
                 Read();
                 SendUpdates();
             }
